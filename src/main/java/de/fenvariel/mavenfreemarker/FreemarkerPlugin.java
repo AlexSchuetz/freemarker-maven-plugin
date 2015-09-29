@@ -27,6 +27,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,6 +45,9 @@ public class FreemarkerPlugin
     @Parameter
     private File templateDir;
 
+    @Parameter(defaultValue = "${basedir}", readonly = true)
+    private File baseDir;
+
     @Parameter
     private TemplateConfiguration[] templateConfigurations = new TemplateConfiguration[0];
 
@@ -52,9 +56,7 @@ public class FreemarkerPlugin
         try {
             configuration.setTemplateLoader(new FileTemplateLoader(templateDir));
         } catch (IOException ex) {
-            String msg = "failed to initialize freemarker";
-            System.err.println(msg);
-            throw new MojoExecutionException(msg, ex);
+            throw new MojoExecutionException("failed to initialize freemarker", ex);
         }
         return configuration;
     }
@@ -85,7 +87,6 @@ public class FreemarkerPlugin
         try {
             template = getFreemarker(config.getVersion()).getTemplate(config.getFtlTemplate(), "UTF-8");
         } catch (Exception ex) {
-            System.err.println("error reading template-file " + config.getFtlTemplate());
             throw new MojoExecutionException("error reading template-file " + config.getFtlTemplate(), ex);
         }
         File outputDir = config.getOutputDir();
@@ -93,17 +94,27 @@ public class FreemarkerPlugin
             outputDir.mkdirs();
         }
         for (SourceBundle source : config.getSourceBundles()) {
-            File sourceFile = source.getFile();
-            String destinationFilename = getNameWithoutExtension(sourceFile);
-            Path destinationFilePath = Paths.get(outputDir.getAbsolutePath(), destinationFilename + config.getTargetExtension());
-            File destinationFile = destinationFilePath.toFile();
-            Map<String, Object> root = new HashMap<String, Object>();
-            root.put("data", readJson(sourceFile));
-            root.put("additionalData", source.getAdditionalData());
-            root.put("relativePath", destinationFilePath);
-            root.put("filename", destinationFilename);
-            root.put("extension", config.getTargetExtension());
-            generate(template, destinationFile, root, config.getEditableSectionNames());
+            Collection<File> sourceFiles;
+            try {
+                sourceFiles = source.getSourceFiles(baseDir);
+            } catch (IOException ex) {
+                throw new MojoExecutionException("error reading source files", ex);
+            }
+            if (sourceFiles == null || sourceFiles.isEmpty()) {
+                throw new MojoExecutionException("no source files found for bundle");
+            }
+            for (File sourceFile : sourceFiles) {
+                String destinationFilename = getNameWithoutExtension(sourceFile);
+                Path destinationFilePath = Paths.get(outputDir.getAbsolutePath(), destinationFilename + config.getTargetExtension());
+                File destinationFile = destinationFilePath.toFile();
+                Map<String, Object> root = new HashMap<String, Object>();
+                root.put("data", readJson(sourceFile));
+                root.put("additionalData", source.getAdditionalData());
+                root.put("relativePath", destinationFilePath);
+                root.put("filename", destinationFilename);
+                root.put("extension", config.getTargetExtension());
+                generate(template, destinationFile, root, config.getEditableSectionNames());
+            }
         }
     }
 
@@ -113,9 +124,7 @@ public class FreemarkerPlugin
             return mapper.readValue(source, new TypeReference<Map<String, Object>>() {
             });
         } catch (IOException ex) {
-            String msg = "error reading source-file " + source.getAbsolutePath();
-            System.err.println(msg);
-            throw new MojoExecutionException(msg, ex);
+            throw new MojoExecutionException("error reading source-file " + source.getAbsolutePath(), ex);
         }
     }
 
@@ -135,9 +144,7 @@ public class FreemarkerPlugin
                 writer.close();
             }
         } catch (Exception ex) {
-            String msg = "error generating file: " + file.getAbsolutePath() + " from template " + template.getName() + " and source " + data;
-            System.err.println(msg);
-            throw new MojoExecutionException(msg, ex);
+            throw new MojoExecutionException("error generating file: " + file.getAbsolutePath() + " from template " + template.getName() + " and source " + data, ex);
         }
     }
 
@@ -157,9 +164,7 @@ public class FreemarkerPlugin
                     }
                 }
             } catch (IOException ex) {
-                String msg = "error parsing file for keep-sections: " + file.getAbsolutePath();
-                System.err.println(msg);
-                throw new MojoExecutionException(msg, ex);
+                throw new MojoExecutionException("error parsing file for keep-sections: " + file.getAbsolutePath(), ex);
             }
         }
     }

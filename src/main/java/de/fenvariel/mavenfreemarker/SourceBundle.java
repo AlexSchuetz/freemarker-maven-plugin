@@ -16,20 +16,32 @@
 package de.fenvariel.mavenfreemarker;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.PathMatcher;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SourceBundle {
 
-    private File file;
+    private String files;
     private Map<String, Object> additionalData = new HashMap<String, Object>();
 
-    public File getFile() {
-        return file;
+    public Collection<File> getSourceFiles(File basedir) throws IOException {
+        System.out.println("baseDir: " + basedir.getAbsolutePath());
+        FileSystem fs = FileSystems.getDefault();
+        PathMatcher matcher = fs.getPathMatcher("glob:" + files);
+        System.out.println("matcher: " + "\"glob:" + files + "\"");
+        FindAllFileVisitor visitor = new FindAllFileVisitor(matcher);
+        Files.walkFileTree(basedir.toPath(), visitor);
+        return visitor.getFiles();
     }
 
-    public void setFile(File file) {
-        this.file = file;
+    public void setFiles(String files) {
+        this.files = files;
     }
 
     public Map<String, Object> getAdditionalData() {
