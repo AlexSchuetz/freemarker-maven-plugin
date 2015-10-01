@@ -82,6 +82,18 @@ public class FreemarkerPlugin
         }
     }
 
+    public Map<String, Object> getConfig(TemplateConfiguration config) {
+        Map<String, Object> configMap = new HashMap<String, Object>();
+        configMap.put("editableSectionNames", config.getEditableSectionNames().keySet());
+        configMap.put("ftlTemplate", config.getFtlTemplate());
+        configMap.put("outputDir", config.getOutputDir().toString());
+        configMap.put("prefix", config.getPrefix());
+        configMap.put("suffix", config.getSuffix());
+        configMap.put("targetExtension", config.getTargetExtension());
+        configMap.put("version", config.getVersion());
+        return configMap;
+    }
+
     private void generate(TemplateConfiguration config) throws MojoExecutionException {
         Template template;
         try {
@@ -110,9 +122,10 @@ public class FreemarkerPlugin
                 Map<String, Object> root = new HashMap<String, Object>();
                 root.put("data", readJson(sourceFile));
                 root.put("additionalData", source.getAdditionalData());
-                root.put("relativePath", destinationFilePath);
-                root.put("filename", destinationFilename);
-                root.put("extension", config.getTargetExtension());
+                Map<String, Object> configMap = getConfig(config);
+                configMap.put("destinationFilePath", destinationFilePath);
+                configMap.put("destinationFilename", destinationFilename);
+                root.put("config", configMap);
                 generate(template, destinationFile, root, config.getEditableSectionNames());
             }
         }
