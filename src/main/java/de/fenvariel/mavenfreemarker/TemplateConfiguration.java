@@ -25,7 +25,8 @@ public class TemplateConfiguration {
     private String ftlTemplate = null;
 
     private String targetExtension = "";
-
+    private String prefix = "";
+    private String suffix = "";
     private File outputDir;
 
     private String[] editableSectionNames = new String[0];
@@ -56,6 +57,22 @@ public class TemplateConfiguration {
 
     public String getTargetExtension() {
         return targetExtension;
+    }
+
+    public String getPrefix() {
+        return prefix;
+    }
+
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
+    }
+
+    public String getSuffix() {
+        return suffix;
+    }
+
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
     }
 
     public void setTargetExtension(String targetExtension) {
