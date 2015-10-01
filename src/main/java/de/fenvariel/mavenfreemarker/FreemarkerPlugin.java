@@ -116,7 +116,7 @@ public class FreemarkerPlugin
                 throw new MojoExecutionException("no source files found for bundle");
             }
             for (File sourceFile : sourceFiles) {
-                String destinationFilename = getNameWithoutExtension(sourceFile);
+                String destinationFilename = config.getPrefix() + getNameWithoutExtension(sourceFile) + config.getSuffix();
                 Path destinationFilePath = Paths.get(outputDir.getAbsolutePath(), destinationFilename + config.getTargetExtension());
                 File destinationFile = destinationFilePath.toFile();
                 Map<String, Object> root = new HashMap<String, Object>();
